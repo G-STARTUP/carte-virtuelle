@@ -1,14 +1,18 @@
 -- Schéma MySQL complet pour hébergement mutualisé
+-- Version révisée avec améliorations de sécurité et d'optimisation.
+-- NOTE DE SÉCURITÉ : Ne jamais stocker d'informations sensibles en clair.
+-- Les mots de passe doivent être hachés avec un algorithme fort (ex: Argon2id, bcrypt).
+-- Les numéros de carte et CVV ne doivent pas être stockés, sauf si vous êtes conforme PCI-DSS.
 -- Adapter types/longueurs selon besoins réels
 
 -- Table utilisateurs (auth)
 CREATE TABLE IF NOT EXISTS users (
   id INT AUTO_INCREMENT PRIMARY KEY,
   email VARCHAR(255) NOT NULL UNIQUE,
-  password_hash VARCHAR(255) NOT NULL,
+  password_hash VARCHAR(255) NOT NULL, -- Doit utiliser password_hash() avec BCRYPT ou ARGON2ID
   first_name VARCHAR(128),
   last_name VARCHAR(128),
-  phone VARCHAR(64),
+  phone VARCHAR(64), -- Recommandation : stocker au format E.164 (ex: +33612345678)
   address TEXT,
   kyc_status ENUM('not_verified', 'pending', 'verified', 'rejected') DEFAULT 'not_verified',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -49,6 +53,7 @@ CREATE TABLE IF NOT EXISTS wallet_transactions (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (wallet_id) REFERENCES wallets(id) ON DELETE CASCADE,
   INDEX (wallet_id),
+  INDEX (type),
   INDEX (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -92,10 +97,9 @@ CREATE TABLE IF NOT EXISTS strowallet_cards (
   balance DECIMAL(15,2) DEFAULT 0.00 NOT NULL,
   currency VARCHAR(16) DEFAULT 'USD',
   status ENUM('active', 'frozen', 'inactive', 'blocked') DEFAULT 'active',
-  card_number VARCHAR(32),
+  card_pan_masked VARCHAR(32), -- NE JAMAIS stocker le numéro de carte complet. Uniquement les 4 derniers chiffres ou un masque (ex: 4111...1111)
   expiry_month VARCHAR(4),
   expiry_year VARCHAR(8),
-  cvv VARCHAR(16),
   raw_response JSON,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -125,6 +129,8 @@ CREATE TABLE IF NOT EXISTS card_transactions (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   INDEX (card_id),
   INDEX (user_id),
+  INDEX (type),
+  INDEX (status),
   INDEX (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
