@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContextPHP";
 import { useNavigate, Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { apiGet, apiPost } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -107,14 +107,9 @@ const Wallets = () => {
 
   const loadWallets = async () => {
     try {
-      const { data, error } = await supabase
-        .from("wallets")
-        .select("*")
-        .eq("user_id", user?.id)
-        .order("currency");
-
-      if (error) throw error;
-      return data;
+      const response = await apiGet('/wallets');
+      if (!response.success) throw new Error(response.error);
+      return response.data?.wallets || [];
     } catch (error) {
       console.error("Error loading wallets:", error);
       return [];
@@ -123,24 +118,9 @@ const Wallets = () => {
 
   const loadTransactions = async () => {
     try {
-      const { data: walletsData } = await supabase
-        .from("wallets")
-        .select("id")
-        .eq("user_id", user?.id);
-
-      if (!walletsData || walletsData.length === 0) return [];
-
-      const walletIds = walletsData.map(w => w.id);
-
-      const { data, error } = await supabase
-        .from("wallet_transactions")
-        .select("*")
-        .in("wallet_id", walletIds)
-        .order("created_at", { ascending: false })
-        .limit(20);
-
-      if (error) throw error;
-      return data;
+      const response = await apiGet('/user?action=transactions&limit=20');
+      if (!response.success) throw new Error(response.error);
+      return response.data?.transactions || [];
     } catch (error) {
       console.error("Error loading transactions:", error);
       return [];
@@ -149,15 +129,9 @@ const Wallets = () => {
 
   const loadMonerooPayments = async () => {
     try {
-      const { data, error } = await supabase
-        .from("moneroo_payments")
-        .select("*")
-        .eq("user_id", user?.id)
-        .order("created_at", { ascending: false })
-        .limit(20);
-
-      if (error) throw error;
-      return data;
+      const response = await apiGet('/user?action=moneroo_payments&limit=20');
+      if (!response.success) throw new Error(response.error);
+      return response.data?.payments || [];
     } catch (error) {
       console.error("Error loading Moneroo payments:", error);
       return [];
@@ -166,13 +140,9 @@ const Wallets = () => {
 
   const loadFeeSettings = async () => {
     try {
-      const { data, error } = await supabase
-        .from("fees_settings")
-        .select("*")
-        .order("setting_key");
-
-      if (error) throw error;
-      return data;
+      const response = await apiGet('/admin?action=fees');
+      if (!response.success) throw new Error(response.error);
+      return response.data?.fees || [];
     } catch (error) {
       console.error("Error loading fee settings:", error);
       return [];
@@ -213,30 +183,23 @@ const Wallets = () => {
       const fees = calculateFees(amount, selectedWallet.currency);
 
       // Initialize Moneroo payment with fees included
-      const { data, error } = await supabase.functions.invoke('initialize-moneroo-payment', {
-        body: {
-          wallet_id: selectedWallet.id,
-          amount: amount,
-          currency: selectedWallet.currency,
-          fees: fees.totalFees,
-          total_amount: fees.totalAmount,
-        },
+      const response = await apiPost('/payment?action=moneroo', {
+        wallet_id: selectedWallet.id,
+        amount: amount,
+        currency: selectedWallet.currency,
+        fees: fees.totalFees,
+        total_amount: fees.totalAmount,
       });
 
-      if (error) {
-        console.error("Error initializing payment:", error);
-        throw new Error(error.message || "Erreur lors de l'initialisation du paiement");
-      }
-
-      if (data.error) {
-        console.error("Payment API error:", data.error);
-        throw new Error(data.error);
+      if (!response.success) {
+        console.error("Error initializing payment:", response.error);
+        throw new Error(response.message || "Erreur lors de l'initialisation du paiement");
       }
 
       // Redirect to Moneroo checkout
-      if (data.checkout_url) {
+      if (response.data?.payment_url) {
         toast.success("Redirection vers la page de paiement...");
-        window.location.href = data.checkout_url;
+        window.location.href = response.data.payment_url;
       } else {
         throw new Error("URL de paiement non reçue");
       }

@@ -1,9 +1,8 @@
-import { Home, CreditCard, UserCheck, LogOut, Wallet, ShieldCheck, Activity } from "lucide-react";
+import { Home, CreditCard, UserCheck, LogOut, Wallet, ShieldCheck, Activity, Key, Settings } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContextPHP";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import {
   Sidebar,
   SidebarContent,
@@ -31,7 +30,8 @@ const adminItems = [
   { title: "Vue d'ensemble", url: "/admin/overview", icon: ShieldCheck },
   { title: "Cartes", url: "/admin/cards", icon: CreditCard },
   { title: "Clients", url: "/admin/customers", icon: UserCheck },
-  { title: "Paramètres", url: "/admin/settings", icon: Wallet },
+  { title: "Clés API", url: "/admin/api-config", icon: Key },
+  { title: "Paramètres", url: "/admin/settings", icon: Settings },
   { title: "Logs API", url: "/admin/api-logs", icon: Activity },
 ];
 
@@ -43,34 +43,15 @@ export function AppSidebar() {
   const isCollapsed = state === "collapsed";
   const [isAdmin, setIsAdmin] = useState(false);
 
-  // Vérification du rôle admin depuis la base de données
+  // Vérification du rôle admin depuis le contexte utilisateur
   useEffect(() => {
-    const checkAdminRole = async () => {
-      if (!user) {
-        setIsAdmin(false);
-        return;
-      }
+    if (!user) {
+      setIsAdmin(false);
+      return;
+    }
 
-      try {
-        const { data, error } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', user.id)
-          .eq('role', 'admin')
-          .single();
-
-        if (!error && data) {
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
-        }
-      } catch (err) {
-        console.error('Error checking admin role:', err);
-        setIsAdmin(false);
-      }
-    };
-
-    checkAdminRole();
+    // Le rôle est déjà dans l'objet user du context
+    setIsAdmin(user.role === 'admin');
   }, [user]);
 
   const renderItems = (items: typeof userItems) => (

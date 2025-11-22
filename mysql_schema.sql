@@ -212,3 +212,66 @@ CREATE TABLE IF NOT EXISTS api_rate_limiter (
   window_start TIMESTAMP NOT NULL,
   UNIQUE KEY uniq_ip_route_window (ip_address, route, window_start)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Table paiements Moneroo (Mobile Money)
+CREATE TABLE IF NOT EXISTS moneroo_payments (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  wallet_id INT NOT NULL,
+  payment_id VARCHAR(128) NOT NULL UNIQUE,
+  amount DECIMAL(15,2) NOT NULL,
+  currency VARCHAR(10) NOT NULL,
+  status ENUM('pending', 'completed', 'failed', 'cancelled') DEFAULT 'pending',
+  metadata JSON,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (wallet_id) REFERENCES wallets(id) ON DELETE CASCADE,
+  INDEX (user_id),
+  INDEX (wallet_id),
+  INDEX (status),
+  INDEX (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Table transactions NowPayments (Crypto)
+CREATE TABLE IF NOT EXISTS nowpayments_transactions (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  wallet_id INT NOT NULL,
+  payment_id VARCHAR(128) NOT NULL UNIQUE,
+  amount DECIMAL(15,2) NOT NULL,
+  currency VARCHAR(10) NOT NULL,
+  crypto_currency VARCHAR(10) NOT NULL,
+  status ENUM('waiting', 'confirming', 'confirmed', 'sending', 'partially_paid', 'finished', 'failed', 'refunded', 'expired') DEFAULT 'waiting',
+  metadata JSON,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (wallet_id) REFERENCES wallets(id) ON DELETE CASCADE,
+  INDEX (user_id),
+  INDEX (wallet_id),
+  INDEX (status),
+  INDEX (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Table configuration API (clés API stockées de manière sécurisée)
+CREATE TABLE IF NOT EXISTS api_config (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  config_key VARCHAR(128) NOT NULL UNIQUE,
+  config_value TEXT NOT NULL,
+  description TEXT,
+  is_sensitive TINYINT(1) DEFAULT 1,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Configuration API par défaut (valeurs vides à remplir)
+INSERT IGNORE INTO api_config (config_key, config_value, description, is_sensitive) VALUES
+  ('STROWALLET_BASE_URL', '', 'URL de base API Strowallet', 0),
+  ('STROWALLET_API_KEY', '', 'Clé API Strowallet', 1),
+  ('STROWALLET_PUBLIC_KEY', '', 'Clé publique Strowallet', 1),
+  ('MONEROO_API_KEY', '', 'Clé API Moneroo (Mobile Money)', 1),
+  ('MONEROO_WEBHOOK_SECRET', '', 'Secret webhook Moneroo', 1),
+  ('NOWPAYMENTS_API_KEY', '', 'Clé API NowPayments (Crypto)', 1),
+  ('NOWPAYMENTS_WEBHOOK_SECRET', '', 'Secret webhook NowPayments', 1),
+  ('APP_URL', '', 'URL de l\'application (ex: https://gwap.pro)', 0);

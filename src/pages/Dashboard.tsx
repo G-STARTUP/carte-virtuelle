@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContextPHP";
+import { apiGet } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Wallet, CreditCard, Plus, ArrowUpRight, CheckCircle2, Shield, Eye, EyeOff } from "lucide-react";
@@ -67,25 +67,30 @@ const Dashboard = () => {
 
     const fetchData = async () => {
       try {
-        // Fetch wallets
-        const { data: walletsData, error: walletsError } = await supabase
-          .from("wallets")
-          .select("*")
-          .eq("user_id", user.id)
-          .order("currency");
+        // Fetch dashboard data (wallets, profile, and role)
+        const response = await apiGet('/user?action=dashboard');
 
-        if (walletsError) throw walletsError;
-        setWallets(walletsData || []);
+        if (!response.success || !response.data) {
+          throw new Error(response.error || 'Failed to fetch dashboard data');
+        }
 
-        // Fetch profile
-        const { data: profileData, error: profileError } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", user.id)
-          .single();
+        const dashboardData = response.data;
 
-        if (profileError) throw profileError;
-        setProfile(profileData);
+        // Set wallets
+        setWallets(dashboardData.wallets || []);
+
+        // Set profile
+        setProfile({
+          kyc_status: user.kyc_status || 'not_submitted',
+          first_name: user.first_name || '',
+          last_name: user.last_name || '',
+          email: user.email || '',
+        });
+
+        // Check if user is admin
+        if (user.role === 'admin') {
+          setIsAdmin(true);
+        }
 
         // Fetch customer
         try {
@@ -95,20 +100,8 @@ const Dashboard = () => {
           // No customer yet
         }
 
-        // Check if user is admin
-        const { data: roleData } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", user.id)
-          .eq("role", "admin")
-          .maybeSingle();
-        
-        if (roleData) {
-          setIsAdmin(true);
-        }
-
         // Show dialog if KYC is verified
-        if (profileData?.kyc_status === "verified") {
+        if (user.kyc_status === "verified") {
           setIsKycVerifiedDialogOpen(true);
         }
       } catch (error) {

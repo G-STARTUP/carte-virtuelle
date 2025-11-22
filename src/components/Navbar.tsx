@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { CreditCard } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContextPHP";
 
 const Navbar = () => {
   const { user } = useAuth();

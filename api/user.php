@@ -273,6 +273,84 @@ if ($action === 'card_transactions' && $method === 'GET') {
     ]);
 }
 
+// ============================================================
+// ACTION: moneroo_payments - Historique paiements Moneroo
+// ============================================================
+if ($action === 'moneroo_payments' && $method === 'GET') {
+    if (!rate_limit('/api/user/moneroo_payments', 60)) {
+        json(['error' => 'Trop de requêtes'], 429);
+    }
+
+    $limit = isset($_GET['limit']) ? min((int)$_GET['limit'], 100) : 20;
+    $page = isset($_GET['page']) ? max((int)$_GET['page'], 1) : 1;
+    $offset = ($page - 1) * $limit;
+
+    $stmt = $pdo->prepare("
+        SELECT id, payment_id, amount, currency, status, created_at, updated_at
+        FROM moneroo_payments
+        WHERE user_id = ?
+        ORDER BY created_at DESC
+        LIMIT ? OFFSET ?
+    ");
+    $stmt->execute([$user['id'], $limit, $offset]);
+    $payments = $stmt->fetchAll();
+
+    $countStmt = $pdo->prepare('SELECT COUNT(*) as cnt FROM moneroo_payments WHERE user_id = ?');
+    $countStmt->execute([$user['id']]);
+    $total = $countStmt->fetch()['cnt'];
+
+    log_api('/api/user/moneroo_payments', 'GET', 200, $user['id'], "Fetched $limit Moneroo payments");
+    json([
+        'success' => true,
+        'payments' => $payments,
+        'pagination' => [
+            'page' => $page,
+            'limit' => $limit,
+            'total' => (int)$total,
+            'pages' => ceil($total / $limit)
+        ]
+    ]);
+}
+
+// ============================================================
+// ACTION: nowpayments_transactions - Historique NowPayments
+// ============================================================
+if ($action === 'nowpayments_transactions' && $method === 'GET') {
+    if (!rate_limit('/api/user/nowpayments_transactions', 60)) {
+        json(['error' => 'Trop de requêtes'], 429);
+    }
+
+    $limit = isset($_GET['limit']) ? min((int)$_GET['limit'], 100) : 20;
+    $page = isset($_GET['page']) ? max((int)$_GET['page'], 1) : 1;
+    $offset = ($page - 1) * $limit;
+
+    $stmt = $pdo->prepare("
+        SELECT id, payment_id, amount, currency, crypto_currency, status, created_at, updated_at
+        FROM nowpayments_transactions
+        WHERE user_id = ?
+        ORDER BY created_at DESC
+        LIMIT ? OFFSET ?
+    ");
+    $stmt->execute([$user['id'], $limit, $offset]);
+    $transactions = $stmt->fetchAll();
+
+    $countStmt = $pdo->prepare('SELECT COUNT(*) as cnt FROM nowpayments_transactions WHERE user_id = ?');
+    $countStmt->execute([$user['id']]);
+    $total = $countStmt->fetch()['cnt'];
+
+    log_api('/api/user/nowpayments_transactions', 'GET', 200, $user['id'], "Fetched $limit NowPayments transactions");
+    json([
+        'success' => true,
+        'transactions' => $transactions,
+        'pagination' => [
+            'page' => $page,
+            'limit' => $limit,
+            'total' => (int)$total,
+            'pages' => ceil($total / $limit)
+        ]
+    ]);
+}
+
 // Action inconnue
 log_api('/api/user', $method, 404, $user['id'], "Unknown action: $action");
 json(['error' => 'Action inconnue: ' . $action], 404);

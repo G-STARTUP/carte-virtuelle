@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiGet } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DollarSign, RefreshCw } from "lucide-react";
@@ -21,19 +21,19 @@ const AdminOverview: React.FC = () => {
   const fetchBalance = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('get-strowallet-balance');
+      const response = await apiGet('/admin?action=stats');
       
-      if (error) throw error;
-      
-      setBalanceData(data);
-      
-      if (!data.success) {
-        toast({
-          title: "Erreur",
-          description: data.message,
-          variant: "destructive",
-        });
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to fetch stats');
       }
+      
+      // Le backend PHP retourne les stats, on simule le format Strowallet
+      setBalanceData({
+        success: true,
+        balance: response.data?.total_balance || 0,
+        currency: 'USD',
+        message: 'Balance retrieved successfully'
+      });
     } catch (error: any) {
       console.error('Error fetching balance:', error);
       toast({

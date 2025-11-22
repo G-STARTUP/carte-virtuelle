@@ -3,7 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider } from "@/contexts/AuthContextPHP";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -19,6 +19,7 @@ import AdminCards from "./pages/AdminCards";
 import AdminCustomers from "./pages/AdminCustomers";
 import AdminSettings from "./pages/AdminSettings";
 import AdminApiLogs from "./pages/AdminApiLogs";
+import AdminApiConfig from "./pages/AdminApiConfig";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -46,6 +47,7 @@ const App = () => (
             <Route path="/admin/customers" element={<DashboardLayout><AdminCustomers /></DashboardLayout>} />
             <Route path="/admin/settings" element={<DashboardLayout><AdminSettings /></DashboardLayout>} />
             <Route path="/admin/api-logs" element={<DashboardLayout><AdminApiLogs /></DashboardLayout>} />
+            <Route path="/admin/api-config" element={<DashboardLayout><AdminApiConfig /></DashboardLayout>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

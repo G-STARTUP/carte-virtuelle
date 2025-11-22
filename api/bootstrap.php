@@ -32,6 +32,16 @@ function db() : PDO {
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         ]);
+        
+        // Charger la configuration API depuis la base de données
+        try {
+            $stmt = $pdo->query('SELECT config_key, config_value FROM api_config WHERE config_value != ""');
+            while ($row = $stmt->fetch()) {
+                $_ENV[$row['config_key']] = $row['config_value'];
+            }
+        } catch (Throwable $e) {
+            // Table api_config n'existe pas encore (première installation)
+        }
     }
     return $pdo;
 }

@@ -388,6 +388,155 @@ if ($action === 'fees') {
     json(['error' => 'Méthode non supportée'], 405);
 }
 
+// ============================================================
+// ACTION: search_user - Search user by email and get wallets
+// ============================================================
+if ($action === 'search_user' && $method === 'GET') {
+    $email = $_GET['email'] ?? null;
+    
+    if (!$email) {
+        json(['error' => 'email requis'], 400);
+    }
+    
+    $stmt = $pdo->prepare('SELECT id, email, first_name, last_name, phone, kyc_status FROM users WHERE email = ?');
+    $stmt->execute([$email]);
+    $userProfile = $stmt->fetch();
+    
+    if (!$userProfile) {
+        log_api('/api/admin/search_user', 'GET', 404, $user['id'], "User not found: $email");
+        json(['success' => false, 'error' => 'Utilisateur introuvable'], 404);
+    }
+    
+    // Get wallets
+    $stmt = $pdo->prepare('SELECT * FROM wallets WHERE user_id = ? ORDER BY currency');
+    $stmt->execute([$userProfile['id']]);
+    $wallets = $stmt->fetchAll();
+    
+    log_api('/api/admin/search_user', 'GET', 200, $user['id'], "Found user: $email");
+    json(['success' => true, 'user' => $userProfile, 'wallets' => $wallets]);
+}
+
+// ============================================================
+// ACTION: user_wallets - Get wallets for a specific user
+// ============================================================
+if ($action === 'user_wallets' && $method === 'GET') {
+    $userId = $_GET['userId'] ?? null;
+    
+    if (!$userId) {
+        json(['error' => 'userId requis'], 400);
+    }
+    
+    $stmt = $pdo->prepare('SELECT * FROM wallets WHERE user_id = ? ORDER BY currency');
+    $stmt->execute([$userId]);
+    $wallets = $stmt->fetchAll();
+    
+    log_api('/api/admin/user_wallets', 'GET', 200, $user['id'], "Fetched wallets for user $userId");
+    json(['success' => true, 'wallets' => $wallets]);
+}
+
+// ============================================================
+// ACTION: api_config - Gérer la configuration des API
+// ============================================================
+if ($action === 'api_config' && $method === 'GET') {
+    $stmt = $pdo->query('SELECT id, config_key, config_value, description, is_sensitive FROM api_config ORDER BY config_key');
+    $configs = $stmt->fetchAll();
+    
+    // Masquer les valeurs sensibles pour l'affichage
+    foreach ($configs as &$config) {
+        if ($config['is_sensitive'] && !empty($config['config_value'])) {
+            $config['config_value_masked'] = str_repeat('*', min(strlen($config['config_value']), 20));
+        } else {
+            $config['config_value_masked'] = $config['config_value'];
+        }
+    }
+    
+    log_api('/api/admin/api_config', 'GET', 200, $user['id'], 'Fetched API config');
+    json(['success' => true, 'configs' => $configs]);
+}
+
+if ($action === 'api_config' && $method === 'PUT') {
+    $input = json_decode(file_get_contents('php://input'), true);
+    $configKey = $input['config_key'] ?? null;
+    $configValue = $input['config_value'] ?? null;
+    
+    if (!$configKey || $configValue === null) {
+        json(['error' => 'config_key et config_value requis'], 400);
+    }
+    
+    // Vérifier que la config existe
+    $stmt = $pdo->prepare('SELECT id FROM api_config WHERE config_key = ?');
+    $stmt->execute([$configKey]);
+    if (!$stmt->fetch()) {
+        json(['error' => 'Configuration introuvable'], 404);
+    }
+    
+    // Mettre à jour
+    $stmt = $pdo->prepare('UPDATE api_config SET config_value = ?, updated_at = NOW() WHERE config_key = ?');
+    $stmt->execute([$configValue, $configKey]);
+    
+    // Mettre à jour les variables d'environnement en mémoire pour cette session
+    $_ENV[$configKey] = $configValue;
+    
+    log_api('/api/admin/api_config', 'PUT', 200, $user['id'], "Updated config $configKey");
+    json(['success' => true, 'message' => 'Configuration mise à jour']);
+}
+
+// ============================================================
+// ACTION: test_strowallet - Test Strowallet API connection
+// ============================================================
+if ($action === 'test_strowallet' && $method === 'GET') {
+    require_once __DIR__ . '/utils/strowallet.php';
+    
+    // Charger depuis DB au lieu de env.ini
+    $stmt = $pdo->query("SELECT config_key, config_value FROM api_config WHERE config_key IN ('STROWALLET_BASE_URL', 'STROWALLET_API_KEY', 'STROWALLET_PUBLIC_KEY')");
+    while ($row = $stmt->fetch()) {
+        $_ENV[$row['config_key']] = $row['config_value'];
+    }
+    
+    $strowalletBaseUrl = $_ENV['STROWALLET_BASE_URL'] ?? '';
+    $strowalletApiKey = $_ENV['STROWALLET_API_KEY'] ?? '';
+    
+    if (!$strowalletBaseUrl || !$strowalletApiKey) {
+        log_api('/api/admin/test_strowallet', 'GET', 500, $user['id'], 'Strowallet not configured');
+        json([
+            'success' => false,
+            'message' => 'Strowallet API non configurée. Veuillez renseigner les clés API.',
+            'status' => 'error'
+        ]);
+    }
+    
+    try {
+        // Test simple: essayer de fetch-card-detail ou test la connexion
+        $result = strowallet_request('/fetch-card-detail', ['card_id' => 'test'], 'POST');
+        
+        if ($result['ok']) {
+            log_api('/api/admin/test_strowallet', 'GET', 200, $user['id'], 'Strowallet connection OK');
+            json([
+                'success' => true,
+                'message' => 'Connexion Strowallet réussie',
+                'status' => 'ok',
+                'data' => $result['data']
+            ]);
+        } else {
+            log_api('/api/admin/test_strowallet', 'GET', 500, $user['id'], 'Strowallet connection failed');
+            json([
+                'success' => false,
+                'message' => 'Échec de connexion Strowallet: ' . $result['error'],
+                'status' => 'error',
+                'error' => $result['error']
+            ]);
+        }
+    } catch (Exception $e) {
+        log_api('/api/admin/test_strowallet', 'GET', 500, $user['id'], 'Exception: ' . $e->getMessage());
+        json([
+            'success' => false,
+            'message' => 'Erreur lors du test de connexion',
+            'status' => 'error',
+            'error' => $e->getMessage()
+        ]);
+    }
+}
+
 // Action inconnue
 log_api('/api/admin', $method, 404, $user['id'], "Unknown action: $action");
 json(['error' => 'Action inconnue: ' . $action], 404);

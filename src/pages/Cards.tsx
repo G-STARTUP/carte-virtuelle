@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContextPHP";
 import { useNavigate } from "react-router-dom";
 import { useStrowallet } from "@/hooks/useStrowallet";
 import { supabase } from "@/integrations/supabase/client";

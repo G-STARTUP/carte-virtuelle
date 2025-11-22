@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContextPHP";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { apiGet, apiPost, apiPut } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -63,16 +63,8 @@ const AdminSettings = () => {
 
   const checkAdminStatus = async () => {
     try {
-      const { data, error } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user?.id)
-        .eq("role", "admin")
-        .maybeSingle();
-
-      if (error) throw error;
-
-      if (!data) {
+      // Le rôle est déjà vérifié dans AuthContextPHP
+      if (user?.role !== 'admin') {
         toast.error("Accès refusé. Vous n'êtes pas administrateur.");
         navigate("/dashboard");
         return;
@@ -91,13 +83,9 @@ const AdminSettings = () => {
 
   const loadFeeSettings = async () => {
     try {
-      const { data, error } = await supabase
-        .from("fees_settings")
-        .select("*")
-        .order("setting_key");
-
-      if (error) throw error;
-      setFeeSettings(data || []);
+      const response = await apiGet('/admin?action=fees');
+      if (!response.success) throw new Error(response.error);
+      setFeeSettings(response.data?.fees || []);
     } catch (error: any) {
       console.error("Error loading fee settings:", error);
       toast.error("Erreur lors du chargement des paramètres");
@@ -223,32 +211,27 @@ const AdminSettings = () => {
 
     setManagingWallet(true);
     try {
-      const { data, error } = await supabase.functions.invoke("admin-manage-wallet", {
-        body: {
-          action,
-          userId: searchedUser!.id,
-          walletId,
-          amount: amount.toString(),
-          description: action === "add" 
-            ? `Ajout admin: +${amount} ${currency}`
-            : `Retrait admin: -${amount} ${currency}`
-        }
+      const response = await apiPost('/admin?action=manage_wallet', {
+        action,
+        userId: searchedUser!.id,
+        walletId,
+        amount: amount.toString(),
+        description: action === "add" 
+          ? `Ajout admin: +${amount} ${currency}`
+          : `Retrait admin: -${amount} ${currency}`
       });
 
-      if (error) throw error;
-      if (data.error) throw new Error(data.error);
+      if (!response.success) {
+        throw new Error(response.message || response.error);
+      }
 
-      toast.success(data.message);
+      toast.success(response.data?.message || 'Wallet mis à jour');
 
       // Refresh wallets
-      const { data: wallets, error: walletsError } = await supabase
-        .from("wallets")
-        .select("*")
-        .eq("user_id", searchedUser!.id)
-        .order("currency");
-
-      if (walletsError) throw walletsError;
-      setUserWallets(wallets || []);
+      const walletsResponse = await apiGet(`/admin?action=user_wallets&userId=${searchedUser!.id}`);
+      if (walletsResponse.success) {
+        setUserWallets(walletsResponse.data?.wallets || []);
+      }
     } catch (error: any) {
       console.error("Error managing wallet:", error);
       toast.error(error.message || "Erreur lors de la gestion du wallet");
@@ -262,16 +245,14 @@ const AdminSettings = () => {
     setApiTestResult(null);
     
     try {
-      const { data, error } = await supabase.functions.invoke("test-strowallet-connection");
+      const response = await apiGet('/admin?action=test_strowallet');
 
-      if (error) throw error;
-
-      setApiTestResult(data);
+      setApiTestResult(response.data || response);
       
-      if (data.success) {
-        toast.success(data.message);
+      if (response.success) {
+        toast.success(response.data?.message || 'Connexion réussie');
       } else {
-        toast.error(data.message);
+        toast.error(response.message || 'Connexion échouée');
       }
     } catch (error: any) {
       console.error("Error testing Strowallet connection:", error);

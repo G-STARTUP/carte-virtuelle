@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContextPHP";
 import { useNavigate, Link } from "react-router-dom";
 import { useStrowallet } from "@/hooks/useStrowallet";
 import { uploadKycFile } from "@/lib/uploadKycFile";

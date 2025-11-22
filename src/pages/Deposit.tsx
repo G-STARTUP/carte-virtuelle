@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContextPHP";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { apiGet, apiPost } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -107,14 +107,9 @@ const Deposit = () => {
 
   const loadWallets = async () => {
     try {
-      const { data, error } = await supabase
-        .from("wallets")
-        .select("*")
-        .eq("user_id", user?.id)
-        .order("currency");
-
-      if (error) throw error;
-      return data;
+      const response = await apiGet('/wallets');
+      if (!response.success) throw new Error(response.error);
+      return response.data?.wallets || [];
     } catch (error) {
       console.error("Error loading wallets:", error);
       return [];
@@ -123,15 +118,9 @@ const Deposit = () => {
 
   const loadMonerooPayments = async () => {
     try {
-      const { data, error } = await supabase
-        .from("moneroo_payments")
-        .select("*")
-        .eq("user_id", user?.id)
-        .order("created_at", { ascending: false })
-        .limit(20);
-
-      if (error) throw error;
-      return data;
+      const response = await apiGet('/user?action=moneroo_payments&limit=20');
+      if (!response.success) throw new Error(response.error);
+      return response.data?.payments || [];
     } catch (error) {
       console.error("Error loading Moneroo payments:", error);
       return [];
@@ -140,15 +129,9 @@ const Deposit = () => {
 
   const loadNowpaymentsTransactions = async () => {
     try {
-      const { data, error } = await supabase
-        .from("nowpayments_transactions")
-        .select("*")
-        .eq("user_id", user?.id)
-        .order("created_at", { ascending: false })
-        .limit(20);
-
-      if (error) throw error;
-      return data;
+      const response = await apiGet('/user?action=nowpayments_transactions&limit=20');
+      if (!response.success) throw new Error(response.error);
+      return response.data?.transactions || [];
     } catch (error) {
       console.error("Error loading NOWPayments transactions:", error);
       return [];
@@ -157,13 +140,9 @@ const Deposit = () => {
 
   const loadFeeSettings = async () => {
     try {
-      const { data, error } = await supabase
-        .from("fees_settings")
-        .select("*")
-        .order("setting_key");
-
-      if (error) throw error;
-      return data;
+      const response = await apiGet('/admin?action=fees');
+      if (!response.success) throw new Error(response.error);
+      return response.data?.fees || [];
     } catch (error) {
       console.error("Error loading fee settings:", error);
       return [];
@@ -204,17 +183,15 @@ const Deposit = () => {
       // USD uses NOWPayments, XOF uses Moneroo
       if (selectedWallet.currency === "USD") {
         // NOWPayments deposit
-        const subPartnerId = user?.id || ""; // Using user ID as sub_partner_id
-        
-        const { data, error } = await supabase.functions.invoke("nowpayments-deposit", {
-          body: {
-            amount: amount,
-            wallet_id: selectedWallet.id,
-            sub_partner_id: subPartnerId,
-          },
+        const response = await apiPost('/payment?action=nowpayments', {
+          amount: amount,
+          wallet_id: selectedWallet.id,
+          currency: selectedWallet.currency,
         });
 
-        if (error) throw error;
+        if (!response.success) {
+          throw new Error(response.message || "Erreur lors de l'initialisation du dépôt");
+        }
 
         toast.success("Dépôt USDT initié avec succès!");
         setIsDepositDialogOpen(false);
@@ -225,20 +202,20 @@ const Deposit = () => {
         const fees = calculateFees(amount, selectedWallet.currency);
         const totalAmount = amount + fees.fixedFee + fees.percentFee;
 
-        const { data, error } = await supabase.functions.invoke("initialize-moneroo-payment", {
-          body: {
-            amount: totalAmount,
-            currency: selectedWallet.currency,
-            wallet_id: selectedWallet.id,
-            base_amount: amount,
-            fees: fees.fixedFee + fees.percentFee,
-          },
+        const response = await apiPost('/payment?action=moneroo', {
+          amount: totalAmount,
+          currency: selectedWallet.currency,
+          wallet_id: selectedWallet.id,
+          base_amount: amount,
+          fees: fees.fixedFee + fees.percentFee,
         });
 
-        if (error) throw error;
+        if (!response.success) {
+          throw new Error(response.message || "Erreur lors de l'initialisation du paiement");
+        }
 
-        if (data.checkout_url) {
-          window.location.href = data.checkout_url;
+        if (response.data?.payment_url) {
+          window.location.href = response.data.payment_url;
         } else {
           throw new Error("URL de paiement non reçue");
         }

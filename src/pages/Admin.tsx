@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContextPHP";
 import { useNavigate, Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { apiGet, apiPut } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -59,16 +59,7 @@ const Admin = () => {
 
   const checkAdminStatus = async () => {
     try {
-      const { data, error } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user?.id)
-        .eq("role", "admin")
-        .maybeSingle();
-
-      if (error) throw error;
-
-      if (!data) {
+      if (user?.role !== 'admin') {
         toast.error("Accès refusé. Vous n'êtes pas administrateur.");
         navigate("/dashboard");
         return;
@@ -87,13 +78,9 @@ const Admin = () => {
 
   const loadFeeSettings = async () => {
     try {
-      const { data, error } = await supabase
-        .from("fees_settings")
-        .select("*")
-        .order("setting_key");
-
-      if (error) throw error;
-      setFeeSettings(data || []);
+      const response = await apiGet('/admin?action=fees');
+      if (!response.success) throw new Error(response.error);
+      setFeeSettings(response.data?.fees || []);
     } catch (error: any) {
       console.error("Error loading fee settings:", error);
       toast.error("Erreur lors du chargement des paramètres");
@@ -115,13 +102,13 @@ const Admin = () => {
         updated_at: new Date().toISOString()
       }));
 
-      for (const update of updates) {
-        const { error } = await supabase
-          .from("fees_settings")
-          .update({ setting_value: update.setting_value })
-          .eq("id", update.id);
+      for (const setting of feeSettings) {
+        const response = await apiPut('/admin?action=fees', {
+          setting_key: setting.setting_key,
+          setting_value: setting.setting_value
+        });
 
-        if (error) throw error;
+        if (!response.success) throw new Error(response.error);
       }
 
       toast.success("Paramètres mis à jour avec succès");
@@ -168,33 +155,17 @@ const Admin = () => {
 
     setLoadingUser(true);
     try {
-      const { data: profile, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("email", searchEmail.trim())
-        .maybeSingle();
+      const response = await apiGet(`/admin?action=search_user&email=${encodeURIComponent(searchEmail.trim())}`);
 
-      if (error) throw error;
-
-      if (!profile) {
+      if (!response.success || !response.data) {
         toast.error("Utilisateur introuvable");
         setSearchedUser(null);
         setUserWallets([]);
         return;
       }
 
-      setSearchedUser(profile);
-
-      // Load user wallets
-      const { data: wallets, error: walletsError } = await supabase
-        .from("wallets")
-        .select("*")
-        .eq("user_id", profile.id)
-        .order("currency");
-
-      if (walletsError) throw walletsError;
-
-      setUserWallets(wallets || []);
+      setSearchedUser(response.data.user);
+      setUserWallets(response.data.wallets || []);
       toast.success("Utilisateur trouvé");
     } catch (error: any) {
       console.error("Error searching user:", error);
@@ -219,32 +190,27 @@ const Admin = () => {
 
     setManagingWallet(true);
     try {
-      const { data, error } = await supabase.functions.invoke("admin-manage-wallet", {
-        body: {
-          action,
-          userId: searchedUser!.id,
-          walletId,
-          amount: amount.toString(),
-          description: action === "add" 
-            ? `Ajout admin: +${amount} ${currency}`
-            : `Retrait admin: -${amount} ${currency}`
-        }
+      const response = await apiPost('/admin?action=manage_wallet', {
+        action,
+        userId: searchedUser!.id,
+        walletId,
+        amount: amount.toString(),
+        description: action === "add" 
+          ? `Ajout admin: +${amount} ${currency}`
+          : `Retrait admin: -${amount} ${currency}`
       });
 
-      if (error) throw error;
-      if (data.error) throw new Error(data.error);
+      if (!response.success) {
+        throw new Error(response.message || response.error);
+      }
 
-      toast.success(data.message);
+      toast.success(response.data?.message || 'Wallet mis à jour');
 
       // Refresh wallets
-      const { data: wallets, error: walletsError } = await supabase
-        .from("wallets")
-        .select("*")
-        .eq("user_id", searchedUser!.id)
-        .order("currency");
-
-      if (walletsError) throw walletsError;
-      setUserWallets(wallets || []);
+      const walletsResponse = await apiGet(`/admin?action=user_wallets&userId=${searchedUser!.id}`);
+      if (walletsResponse.success) {
+        setUserWallets(walletsResponse.data?.wallets || []);
+      }
     } catch (error: any) {
       console.error("Error managing wallet:", error);
       toast.error(error.message || "Erreur lors de la gestion du wallet");

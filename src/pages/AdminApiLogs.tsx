@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContextPHP";
 import { useNavigate, Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { apiGet } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -52,16 +52,7 @@ const AdminApiLogs = () => {
 
   const checkAdminStatus = async () => {
     try {
-      const { data, error } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user?.id)
-        .eq("role", "admin")
-        .maybeSingle();
-
-      if (error) throw error;
-
-      if (!data) {
+      if (user?.role !== 'admin') {
         toast.error("Accès refusé. Vous n'êtes pas administrateur.");
         navigate("/dashboard");
         return;
@@ -69,7 +60,9 @@ const AdminApiLogs = () => {
 
       setIsAdmin(true);
       await loadLogs();
-      subscribeToLogs();
+      // Polling toutes les 10 secondes au lieu de realtime
+      const interval = setInterval(loadLogs, 10000);
+      return () => clearInterval(interval);
     } catch (error: any) {
       console.error("Error checking admin status:", error);
       toast.error("Erreur lors de la vérification des permissions");
@@ -81,14 +74,9 @@ const AdminApiLogs = () => {
 
   const loadLogs = async () => {
     try {
-      const { data, error } = await supabase
-        .from("strowallet_api_logs")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(200);
-
-      if (error) throw error;
-      setLogs(data || []);
+      const response = await apiGet('/admin?action=logs&limit=200');
+      if (!response.success) throw new Error(response.error);
+      setLogs(response.data?.logs || []);
     } catch (error: any) {
       console.error("Error loading logs:", error);
       toast.error("Erreur lors du chargement des logs");
@@ -134,30 +122,8 @@ const AdminApiLogs = () => {
     setFilteredLogs(filtered);
   }, [logs, statusFilter, functionFilter, userSearch, dateFrom, dateTo]);
 
-  const subscribeToLogs = () => {
-    const channel = supabase
-      .channel('api-logs-realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'strowallet_api_logs'
-        },
-        (payload) => {
-          console.log('New log received:', payload);
-          setLogs(prev => [payload.new as ApiLog, ...prev.slice(0, 199)]);
-          toast.success("Nouveau log reçu", {
-            description: `${(payload.new as ApiLog).function_name} - ${(payload.new as ApiLog).status_code || 'N/A'}`
-          });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  };
+  // Polling remplace realtime (pas de websockets sur hébergement mutualisé)
+  // La logique de polling est maintenant dans checkAdminStatus
 
   const resetFilters = () => {
     setStatusFilter("all");
