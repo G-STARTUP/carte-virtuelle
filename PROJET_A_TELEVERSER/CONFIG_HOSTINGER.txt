@@ -1,0 +1,90 @@
+=======================================================================
+  📋 CONFIGURATION POUR HOSTINGER - À COPIER DANS env.ini
+=======================================================================
+
+Ouvrez ce fichier sur le serveur : public_html/api/env.ini
+Remplacez les valeurs ci-dessous avec vos vraies informations.
+
+-----------------------------------------------------------------------
+🔐 CONFIGURATION MYSQL (depuis votre panneau Hostinger)
+-----------------------------------------------------------------------
+
+MYSQL_HOST=localhost
+MYSQL_DATABASE=u540259652_gwapcarte
+MYSQL_USER=u540259652_gwapcarte
+MYSQL_PASSWORD=VotreMotDePasseMySQLIci
+
+  ⚠️ IMPORTANT : Remplacez "VotreMotDePasseMySQLIci" par le vrai
+     mot de passe MySQL que vous avez défini dans Hostinger.
+
+-----------------------------------------------------------------------
+🔑 JWT SECRET (généré pour vous)
+-----------------------------------------------------------------------
+
+JWT_SECRET=Yw94IGhfFeJAuU1nCbgWSLzkKB02Vtq7MvyQaRDXliZPjdN5rspEo8TH3mcxO6
+
+  ✅ Cette valeur a été générée aléatoirement et est prête à l'emploi.
+     Vous pouvez la copier telle quelle dans votre fichier env.ini.
+
+-----------------------------------------------------------------------
+🔒 INSTALL SECRET (à utiliser une seule fois)
+-----------------------------------------------------------------------
+
+INSTALL_SECRET=gwap_install_2025_secure_token
+
+  ℹ️ Utilisez cette valeur pour accéder à /api/install.php une fois,
+     puis supprimez le fichier install.php du serveur.
+
+-----------------------------------------------------------------------
+🌐 CONFIGURATION ENVIRONNEMENT
+-----------------------------------------------------------------------
+
+APP_ENV=production
+APP_URL=https://gwap.pro
+
+-----------------------------------------------------------------------
+💳 STROWALLET API (laissez vide si pas encore configuré)
+-----------------------------------------------------------------------
+
+STROWALLET_BASE_URL=https://api.strowallet.com/
+STROWALLET_API_KEY=VOTRE_CLE_API_STROWALLET
+STROWALLET_PUBLIC_KEY=VOTRE_CLE_PUBLIQUE_STROWALLET
+
+  ℹ️ Si vous n'avez pas encore de clés Strowallet, laissez vide.
+     Vous pourrez les ajouter plus tard quand vous les recevrez.
+
+-----------------------------------------------------------------------
+📱 AUTRES APIS (optionnel - laissez vide pour l'instant)
+-----------------------------------------------------------------------
+
+MONEROO_API_KEY=
+MONEROO_WEBHOOK_SECRET=
+NOWPAYMENTS_API_KEY=
+NOWPAYMENTS_WEBHOOK_SECRET=
+
+=======================================================================
+  ✅ CHECKLIST APRÈS CONFIGURATION
+=======================================================================
+
+[ ] 1. Fichiers téléversés dans public_html/
+[ ] 2. Fichier env.ini modifié avec les vraies valeurs
+[ ] 3. Base de données importée (mysql_schema.sql)
+[ ] 4. Test API : https://gwap.pro/api/diag.php
+[ ] 5. Test inscription : https://gwap.pro
+
+=======================================================================
+  🆘 EN CAS DE PROBLÈME
+=======================================================================
+
+Si vous voyez encore l'erreur 500 après tout cela :
+
+1. Vérifiez les logs d'erreur dans le panneau Hostinger
+2. Vérifiez que env.ini est bien dans : public_html/api/env.ini
+3. Vérifiez que toutes les tables sont créées dans phpMyAdmin
+4. Testez directement : https://gwap.pro/api/auth.php?action=register
+
+Pour plus de détails, consultez : GUIDE_DEPLOIEMENT_HOSTINGER.md
+
+=======================================================================
+Date de génération : 2025-11-22
+=======================================================================
