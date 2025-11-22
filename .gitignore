@@ -10,8 +10,8 @@ lerna-debug.log*
 # Dependencies
 node_modules/
 
-# Builds
-dist/
+# Builds (keep dist tracked for Hostinger static deploy)
+# Remove dist ignore; commit built assets when webhook cannot build.
 dist-ssr/
 *.local
 .dist/
