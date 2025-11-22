@@ -101,20 +101,14 @@ const AdminSettings = () => {
   const handleSaveSettings = async () => {
     setSaving(true);
     try {
-      const updates = feeSettings.map(setting => ({
-        id: setting.id,
-        setting_value: setting.setting_value,
-        updated_at: new Date().toISOString()
-      }));
+      const response = await apiPut('/admin?action=update_fees', {
+        fees: feeSettings.map(s => ({
+          id: s.id,
+          setting_value: s.setting_value
+        }))
+      });
 
-      for (const update of updates) {
-        const { error } = await supabase
-          .from("fees_settings")
-          .update({ setting_value: update.setting_value })
-          .eq("id", update.id);
-
-        if (error) throw error;
-      }
+      if (!response.success) throw new Error(response.error);
 
       toast.success("Paramètres mis à jour avec succès");
       await loadFeeSettings();
@@ -160,33 +154,17 @@ const AdminSettings = () => {
 
     setLoadingUser(true);
     try {
-      const { data: profile, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("email", searchEmail.trim())
-        .maybeSingle();
+      const response = await apiGet(`/admin?action=search_user&email=${encodeURIComponent(searchEmail.trim())}`);
 
-      if (error) throw error;
-
-      if (!profile) {
+      if (!response.success || !response.data?.user) {
         toast.error("Utilisateur introuvable");
         setSearchedUser(null);
         setUserWallets([]);
         return;
       }
 
-      setSearchedUser(profile);
-
-      // Load user wallets
-      const { data: wallets, error: walletsError } = await supabase
-        .from("wallets")
-        .select("*")
-        .eq("user_id", profile.id)
-        .order("currency");
-
-      if (walletsError) throw walletsError;
-
-      setUserWallets(wallets || []);
+      setSearchedUser(response.data.user);
+      setUserWallets(response.data.wallets || []);
       toast.success("Utilisateur trouvé");
     } catch (error: any) {
       console.error("Error searching user:", error);

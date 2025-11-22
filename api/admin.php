@@ -350,9 +350,9 @@ if ($action === 'logs' && $method === 'GET') {
 }
 
 // ============================================================
-// ACTION: fees - Paramètres de frais
+// ACTION: fees / fees_settings - Paramètres de frais
 // ============================================================
-if ($action === 'fees') {
+if ($action === 'fees' || $action === 'fees_settings') {
     if (!rate_limit('/api/admin/fees', 20)) {
         json(['error' => 'Trop de requêtes'], 429);
     }
@@ -361,7 +361,7 @@ if ($action === 'fees') {
     if ($method === 'GET') {
         $stmt = $pdo->query('SELECT * FROM fees_settings ORDER BY setting_key');
         $fees = $stmt->fetchAll();
-        json(['success' => true, 'fees' => $fees]);
+        json(['success' => true, 'data' => ['fees' => $fees]]);
     }
     
     // PUT: Mettre à jour un frais
@@ -386,6 +386,40 @@ if ($action === 'fees') {
     }
     
     json(['error' => 'Méthode non supportée'], 405);
+}
+
+// ============================================================
+// ACTION: update_fees - Mettre à jour plusieurs frais en batch
+// ============================================================
+if ($action === 'update_fees' && $method === 'PUT') {
+    $input = json_decode(file_get_contents('php://input'), true);
+    $fees = $input['fees'] ?? [];
+    
+    if (empty($fees) || !is_array($fees)) {
+        json(['error' => 'Array fees requis'], 400);
+    }
+    
+    $pdo->beginTransaction();
+    try {
+        $stmt = $pdo->prepare('UPDATE fees_settings SET setting_value = ?, updated_at = NOW() WHERE id = ?');
+        
+        foreach ($fees as $fee) {
+            $id = $fee['id'] ?? null;
+            $value = $fee['setting_value'] ?? null;
+            
+            if (!$id || $value === null) continue;
+            
+            $stmt->execute([$value, $id]);
+        }
+        
+        $pdo->commit();
+        log_api('/api/admin/update_fees', 'PUT', 200, $user['id'], 'Updated multiple fees');
+        json(['success' => true, 'message' => 'Frais mis à jour avec succès']);
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        log_api('/api/admin/update_fees', 'PUT', 500, $user['id'], 'Error: ' . $e->getMessage());
+        json(['error' => 'Erreur lors de la mise à jour: ' . $e->getMessage()], 500);
+    }
 }
 
 // ============================================================

@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContextPHP";
 import { useNavigate } from "react-router-dom";
 import { useStrowallet } from "@/hooks/useStrowallet";
-import { supabase } from "@/integrations/supabase/client";
+import { apiGet } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import CardPreview from "@/components/CardPreview";
@@ -93,14 +93,8 @@ const Cards = () => {
 
   const loadWallets = async () => {
     try {
-      const { data, error } = await supabase
-        .from('wallets')
-        .select('*')
-        .eq('user_id', user?.id)
-        .order('currency');
-      
-      if (error) throw error;
-      return data;
+      const data = await apiGet('/wallets?action=list');
+      return data.wallets || [];
     } catch (error) {
       console.error("Error loading wallets:", error);
       return [];
@@ -109,15 +103,11 @@ const Cards = () => {
 
   const loadFeeSettings = async () => {
     try {
-      const { data, error } = await supabase
-        .from('fees_settings')
-        .select('*');
-      
-      if (error) throw error;
+      const data = await apiGet('/admin?action=fees_settings');
       
       // Convert array to object for easy lookup
       const feesMap: any = {};
-      data?.forEach((fee: any) => {
+      data.fees?.forEach((fee: any) => {
         feesMap[fee.setting_key] = parseFloat(fee.setting_value);
       });
       return feesMap;

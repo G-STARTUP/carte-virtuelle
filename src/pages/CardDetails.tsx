@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContextPHP";
-import { supabase } from "@/integrations/supabase/client";
+import { apiGet, apiPost } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -64,15 +64,8 @@ const CardDetails = () => {
 
   const fetchCardDetails = async () => {
     try {
-      const { data, error } = await supabase
-        .from("strowallet_cards")
-        .select("*")
-        .eq("card_id", cardId)
-        .eq("user_id", user?.id)
-        .single();
-
-      if (error) throw error;
-      setCard(data);
+      const data = await apiGet(`/cards?action=details&card_id=${cardId}`);
+      setCard(data.card);
     } catch (error) {
       console.error("Error fetching card details:", error);
       toast({
@@ -87,16 +80,8 @@ const CardDetails = () => {
 
   const fetchTransactions = async () => {
     try {
-      const { data, error } = await supabase
-        .from("card_transactions")
-        .select("*")
-        .eq("card_id", cardId)
-        .eq("user_id", user?.id)
-        .order("created_at", { ascending: false })
-        .limit(50);
-
-      if (error) throw error;
-      setTransactions(data || []);
+      const data = await apiGet(`/cards?action=transactions&card_id=${cardId}`);
+      setTransactions(data.transactions || []);
     } catch (error) {
       console.error("Error fetching transactions:", error);
     }
@@ -107,14 +92,10 @@ const CardDetails = () => {
 
     setActionLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke(
-        "block-strowallet-card",
-        {
-          body: { card_id: cardId, action },
-        }
-      );
-
-      if (error) throw error;
+      const data = await apiPost('/cards?action=block', {
+        card_id: cardId,
+        action
+      });
 
       if (data.success) {
         toast({
