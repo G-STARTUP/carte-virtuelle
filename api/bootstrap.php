@@ -1,10 +1,18 @@
 <?php
 // Chargement environnement mutualisé
-$envPath = __DIR__ . '/../secure/env.ini'; // Placer env.ini hors public_html si possible
-if (file_exists($envPath)) {
-    $env = parse_ini_file($envPath, false, INI_SCANNER_TYPED);
-    foreach ($env as $k => $v) {
-        $_ENV[$k] = $v;
+// Cherche env.ini dans plusieurs emplacements (ordre de priorité)
+$envPaths = [
+    __DIR__ . '/../secure/env.ini',  // Idéal (hors public_html)
+    __DIR__ . '/env.ini',             // Fallback (dans api/)
+];
+
+foreach ($envPaths as $envPath) {
+    if (file_exists($envPath)) {
+        $env = parse_ini_file($envPath, false, INI_SCANNER_TYPED);
+        foreach ($env as $k => $v) {
+            $_ENV[$k] = $v;
+        }
+        break; // Stopper à la première trouvée
     }
 }
 

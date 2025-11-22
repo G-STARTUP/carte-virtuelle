@@ -1,0 +1,4 @@
+# Protéger env.ini - Bloquer accès direct
+<Files "env.ini">
+  Require all denied
+</Files>
