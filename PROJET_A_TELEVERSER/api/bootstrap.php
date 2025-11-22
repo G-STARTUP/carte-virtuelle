@@ -1,4 +1,61 @@
 <?php
+// ===== DÉSACTIVER L'AFFICHAGE DES ERREURS PHP =====
+// Empêche PHP d'afficher les erreurs HTML qui cassent le JSON
+ini_set('display_errors', '0');
+ini_set('display_startup_errors', '0');
+error_reporting(E_ALL);
+
+// Gestionnaire d'erreurs global pour renvoyer du JSON
+set_error_handler(function($errno, $errstr, $errfile, $errline) {
+    // Log l'erreur (optionnel)
+    error_log("PHP Error [$errno]: $errstr in $errfile:$errline");
+    
+    // Retourner une réponse JSON propre
+    if (!headers_sent()) {
+        header('Content-Type: application/json; charset=utf-8');
+        http_response_code(500);
+    }
+    echo json_encode([
+        'success' => false,
+        'error' => 'Internal Server Error',
+        'details' => $_ENV['APP_ENV'] === 'development' ? $errstr : null
+    ]);
+    exit;
+});
+
+// Gestionnaire d'exceptions global
+set_exception_handler(function($exception) {
+    error_log("PHP Exception: " . $exception->getMessage());
+    
+    if (!headers_sent()) {
+        header('Content-Type: application/json; charset=utf-8');
+        http_response_code(500);
+    }
+    echo json_encode([
+        'success' => false,
+        'error' => 'Internal Server Error',
+        'details' => $_ENV['APP_ENV'] === 'development' ? $exception->getMessage() : null
+    ]);
+    exit;
+});
+
+// Gestionnaire d'arrêt fatal
+register_shutdown_function(function() {
+    $error = error_get_last();
+    if ($error !== null && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
+        error_log("PHP Fatal Error: " . $error['message']);
+        
+        if (!headers_sent()) {
+            header('Content-Type: application/json; charset=utf-8');
+            http_response_code(500);
+        }
+        echo json_encode([
+            'success' => false,
+            'error' => 'Internal Server Error'
+        ]);
+    }
+});
+
 // Chargement environnement mutualisé
 // Cherche env.ini dans plusieurs emplacements (ordre de priorité)
 $envPaths = [
@@ -19,6 +76,7 @@ foreach ($envPaths as $envPath) {
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Headers: Authorization, Content-Type');
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
     exit;
