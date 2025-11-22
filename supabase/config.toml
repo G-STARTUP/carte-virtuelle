@@ -1,0 +1,43 @@
+project_id = "daddtxnyqvokvbkpaawr"
+
+[functions.create-strowallet-customer]
+verify_jwt = true
+
+[functions.create-strowallet-card]
+verify_jwt = true
+
+[functions.get-card-details]
+verify_jwt = true
+
+[functions.fund-strowallet-card]
+verify_jwt = true
+
+[functions.block-strowallet-card]
+verify_jwt = true
+
+[functions.update-strowallet-customer]
+verify_jwt = true
+
+[functions.get-strowallet-balance]
+verify_jwt = true
+
+[functions.test-strowallet-connection]
+verify_jwt = true
+
+[functions.strowallet-webhook]
+verify_jwt = false
+
+[functions.initialize-moneroo-payment]
+verify_jwt = true
+
+[functions.moneroo-webhook]
+verify_jwt = false
+
+[functions.nowpayments-deposit]
+verify_jwt = true
+
+[functions.get-nowpayments-transfer]
+verify_jwt = true
+
+[functions.admin-manage-wallet]
+verify_jwt = true
