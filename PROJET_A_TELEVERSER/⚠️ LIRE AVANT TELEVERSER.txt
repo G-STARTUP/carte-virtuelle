@@ -1,0 +1,75 @@
+╔══════════════════════════════════════════════════════════════════╗
+║                                                                  ║
+║   ⚠️  ATTENTION : TÉLÉVERSEMENT SUR HOSTINGER                   ║
+║                                                                  ║
+╚══════════════════════════════════════════════════════════════════╝
+
+📤 COMMENT TÉLÉVERSER CORRECTEMENT ?
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1️⃣  Ouvrez ce dossier : PROJET_A_TELEVERSER/
+
+2️⃣  Sélectionnez TOUT le CONTENU de ce dossier :
+    ✅ index.html (celui qui est DANS ce dossier)
+    ✅ api/
+    ✅ assets/
+    ✅ .htaccess
+    ✅ robots.txt
+    ✅ favicon.ico
+    ✅ etc.
+
+3️⃣  Téléversez vers : public_html/ (sur Hostinger)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚠️  NE PAS CONFONDRE LES DEUX index.html !
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Il y a DEUX fichiers index.html sur votre PC :
+
+❌ index.html à la RACINE de votre PC
+   📍 Emplacement : D:\...\carte virtuelle\index.html
+   🎯 Usage : Développement local uniquement
+   📝 Contient : <script src="/src/main.tsx">
+   ❌ NE PAS TÉLÉVERSER
+
+✅ index.html DANS ce dossier (PROJET_A_TELEVERSER)
+   📍 Emplacement : D:\...\PROJET_A_TELEVERSER\index.html
+   🎯 Usage : Production (serveur Hostinger)
+   📝 Contient : Liens vers /assets/index-xxxxx.js
+   ✅ C'EST CELUI-CI QU'IL FAUT TÉLÉVERSER
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 RÉSULTAT ATTENDU SUR HOSTINGER :
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+public_html/
+├── index.html          ← Version PRODUCTION (compilée)
+├── .htaccess
+├── robots.txt
+├── api/
+│   ├── auth.php
+│   ├── bootstrap.php
+│   ├── env.ini
+│   └── ...
+└── assets/
+    ├── index-xxxxx.js
+    ├── index-xxxxx.css
+    └── ...
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ APRÈS LE TÉLÉVERSEMENT :
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Éditez : public_html/api/env.ini (voir CONFIG_HOSTINGER.txt)
+2. Importez mysql_schema.sql dans phpMyAdmin
+3. Testez : https://gwap.pro/api/diag.php
+4. Testez : https://gwap.pro
+
+Pour plus de détails, consultez : LIRE_MOI_DEPLOIEMENT.txt
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Date de création : 2025-11-22
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

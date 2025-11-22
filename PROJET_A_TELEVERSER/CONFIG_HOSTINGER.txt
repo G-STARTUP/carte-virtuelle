@@ -2,6 +2,19 @@
   📋 CONFIGURATION POUR HOSTINGER - À COPIER DANS env.ini
 =======================================================================
 
+⚠️  IMPORTANT : TÉLÉVERSEMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Téléversez UNIQUEMENT le CONTENU de ce dossier (PROJET_A_TELEVERSER)
+vers public_html/ sur Hostinger.
+
+❌ NE PAS téléverser l'index.html qui est à la racine de votre PC
+✅ TÉLÉVERSER l'index.html qui est DANS ce dossier (PROJET_A_TELEVERSER)
+
+Les deux fichiers ont le même nom mais sont différents :
+- Racine PC : Version développement (pointe vers /src/main.tsx)
+- Ce dossier : Version production (pointe vers /assets/index-xxx.js)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 Ouvrez ce fichier sur le serveur : public_html/api/env.ini
 Remplacez les valeurs ci-dessous avec vos vraies informations.
 
