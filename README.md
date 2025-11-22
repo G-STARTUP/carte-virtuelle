@@ -1,24 +1,25 @@
 # carte-virtuelle
 
----
+Projet carte virtuelle: frontend React/Vite + API PHP mutualisé Hostinger.
 
-# Welcome to your Lovable project
+## Contexte Lovable
 
-## Project info
+Ce dépôt provient initialement d'un projet Lovable.
 
-**URL**: https://lovable.dev/projects/115ed089-2593-4423-9efd-554980b692a4
+### URL du projet Lovable
+<https://lovable.dev/projects/115ed089-2593-4423-9efd-554980b692a4>
 
 ## How can I edit this code?
 
-There are several ways of editing your application.
+Il existe plusieurs façons de modifier l'application.
 
-**Use Lovable**
+### Éditer via Lovable
 
 Simply visit the [Lovable Project](https://lovable.dev/projects/115ed089-2593-4423-9efd-554980b692a4) and start prompting.
 
 Changes made via Lovable will be committed automatically to this repo.
 
-**Use your preferred IDE**
+### Utiliser votre IDE local
 
 If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
 
@@ -40,13 +41,13 @@ npm i
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+### Modifier directement sur GitHub
 
 - Navigate to the desired file(s).
 - Click the "Edit" button (pencil icon) at the top right of the file view.
 - Make your changes and commit the changes.
 
-**Use GitHub Codespaces**
+### Utiliser GitHub Codespaces
 
 - Navigate to the main page of your repository.
 - Click on the "Code" button (green button) near the top right.
