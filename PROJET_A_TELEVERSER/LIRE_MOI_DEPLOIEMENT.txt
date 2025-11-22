@@ -1,0 +1,62 @@
+# ⚠️ ERREUR 500 : SOLUTION RAPIDE
+
+## 🔴 Erreur actuelle
+```
+POST https://gwap.pro/api/auth?action=register 500 (Internal Server Error)
+SyntaxError: Unexpected token '<', "<br />" is not valid JSON
+```
+
+## ✅ CAUSE
+Le serveur PHP retourne du HTML au lieu de JSON car :
+1. ❌ Le fichier `env.ini` n'est pas configuré sur le serveur
+2. ❌ La base de données n'est pas importée
+3. ❌ Les fichiers corrigés ne sont pas téléversés
+
+## 🚀 SOLUTION EN 4 ÉTAPES
+
+### 1️⃣ Téléverser les fichiers
+```
+Téléversez TOUT le contenu de :
+  📁 PROJET_A_TELEVERSER/
+vers :
+  📁 public_html/ (sur Hostinger)
+```
+
+### 2️⃣ Configurer env.ini
+```
+Éditez : public_html/api/env.ini
+Remplacez :
+  MYSQL_PASSWORD=VOTRE_MOT_DE_PASSE_ICI
+  JWT_SECRET=CHANGEZ_CETTE_VALEUR...
+Par vos vraies valeurs Hostinger
+```
+
+### 3️⃣ Importer la base de données
+```
+Dans phpMyAdmin (Hostinger) :
+1. Sélectionnez la base : u540259652_gwapcarte
+2. Onglet "Importer"
+3. Choisir le fichier : mysql_schema.sql
+4. Cliquer "Exécuter"
+```
+
+### 4️⃣ Tester
+```
+1. https://gwap.pro/api/diag.php
+   ➡️ Devrait afficher : {"status":"ok","database":"connected"}
+
+2. https://gwap.pro
+   ➡️ Testez l'inscription
+```
+
+---
+
+## 📖 GUIDE COMPLET
+Consultez : `GUIDE_DEPLOIEMENT_HOSTINGER.md`
+
+## 🔐 GÉNÉRER UN JWT SECRET
+Exécutez : `generate-jwt-secret.bat`
+
+---
+
+**IMPORTANT** : Tous les fichiers ont été corrigés et sont prêts dans le dossier `PROJET_A_TELEVERSER/`
