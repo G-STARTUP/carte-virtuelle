@@ -2,3 +2,18 @@
 <Files "env.ini">
   Require all denied
 </Files>
+
+# Enable URL rewriting
+RewriteEngine On
+RewriteBase /api/
+
+# Route /api/endpoint to /api/endpoint.php if .php file exists
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME}.php -f
+RewriteRule ^([^/]+)$ $1.php [L,QSA]
+
+# Handle query strings properly
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^([^/]+)/(.*)$ $1.php?$2 [L,QSA]
