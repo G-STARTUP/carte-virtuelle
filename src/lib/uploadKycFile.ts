@@ -1,54 +1,61 @@
-import { supabase } from "@/integrations/supabase/client";
-
+/**
+ * Upload KYC file via PHP backend
+ * Files are stored in /uploads/kyc/ directory on the server
+ */
 export async function uploadKycFile(
   file: File,
   userId: string,
   type: 'id' | 'photo'
 ): Promise<string> {
-  const ext = file.name.split('.').pop();
-  const timestamp = Date.now();
-  const path = `${userId}/${type}-${timestamp}.${ext}`;
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('userId', userId);
+  formData.append('type', type);
 
-  // Upload file to storage
-  const { error: uploadError } = await supabase.storage
-    .from('kyc-assets')
-    .upload(path, file, {
-      upsert: false,
-      contentType: file.type,
-    });
+  const token = localStorage.getItem('auth_token');
+  
+  const response = await fetch('/api/customer.php?action=upload_kyc', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    },
+    body: formData
+  });
 
-  if (uploadError) {
-    throw new Error(`Failed to upload ${type}: ${uploadError.message}`);
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || `Failed to upload ${type}`);
   }
 
-  // Get public URL instead of signed URL for Strowallet API access
-  const { data: publicUrlData } = supabase.storage
-    .from('kyc-assets')
-    .getPublicUrl(path);
-
-  if (!publicUrlData) {
-    throw new Error(`Failed to get public URL for ${type}`);
+  const result = await response.json();
+  
+  if (!result.success) {
+    throw new Error(result.error || `Failed to upload ${type}`);
   }
 
-  return publicUrlData.publicUrl;
+  return result.url;
 }
 
 export async function deleteKycFile(url: string): Promise<void> {
-  // Extract path from signed URL
-  const urlObj = new URL(url);
-  const pathMatch = urlObj.pathname.match(/\/kyc-assets\/(.+?)(?:\?|$)/);
+  const token = localStorage.getItem('auth_token');
   
-  if (!pathMatch) {
-    throw new Error('Invalid URL format');
+  const response = await fetch('/api/customer.php?action=delete_kyc', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ url })
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to delete file');
   }
 
-  const path = pathMatch[1];
-
-  const { error } = await supabase.storage
-    .from('kyc-assets')
-    .remove([path]);
-
-  if (error) {
-    throw new Error(`Failed to delete file: ${error.message}`);
+  const result = await response.json();
+  
+  if (!result.success) {
+    throw new Error(result.error || 'Failed to delete file');
   }
 }

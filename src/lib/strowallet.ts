@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { apiGet, apiPost, apiPut } from "@/lib/api";
 
 export interface CreateCustomerData {
   first_name: string;
@@ -36,15 +36,9 @@ export interface UpdateCustomerData {
 }
 
 export class StrowalletClient {
-  private async callFunction(functionName: string, data: any) {
-    const { data: result, error } = await supabase.functions.invoke(functionName, {
-      body: data,
-    });
-
-    if (error) {
-      throw new Error(error.message || `Failed to call ${functionName}`);
-    }
-
+  async createCustomer(data: CreateCustomerData) {
+    const result = await apiPost('/customer?action=create', data);
+    
     if (!result.success) {
       throw new Error(result.error || 'Operation failed');
     }
@@ -52,22 +46,18 @@ export class StrowalletClient {
     return result;
   }
 
-  async createCustomer(data: CreateCustomerData) {
-    return this.callFunction('create-strowallet-customer', data);
-  }
-
   async createCard(data: CreateCardData) {
-    return this.callFunction('create-strowallet-card', data);
+    const result = await apiPost('/cards?action=create', data);
+    
+    if (!result.success) {
+      throw new Error(result.error || 'Operation failed');
+    }
+
+    return result;
   }
 
   async getCardDetails(cardId: string) {
-    const { data: result, error } = await supabase.functions.invoke('get-card-details', {
-      body: { card_id: cardId },
-    });
-
-    if (error) {
-      throw new Error(error.message || 'Failed to get card details');
-    }
+    const result = await apiGet(`/cards?action=details&card_id=${cardId}`);
 
     if (!result.success) {
       throw new Error(result.error || 'Failed to get card details');
@@ -77,52 +67,45 @@ export class StrowalletClient {
   }
 
   async getUserCards() {
-    const { data: user } = await supabase.auth.getUser();
-    if (!user.user) throw new Error('Not authenticated');
+    const result = await apiGet('/cards?action=list');
+    
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to get cards');
+    }
 
-    const { data, error } = await supabase
-      .from('strowallet_cards')
-      .select('*')
-      .eq('user_id', user.user.id)
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    return data;
+    return result.cards || [];
   }
 
   async getUserCustomer() {
-    const { data: user } = await supabase.auth.getUser();
-    if (!user.user) throw new Error('Not authenticated');
+    const result = await apiGet('/customer?action=get');
+    
+    // Return null if customer not found (not an error)
+    if (!result.success && result.error?.includes('not found')) {
+      return null;
+    }
+    
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to get customer');
+    }
 
-    const { data, error } = await supabase
-      .from('strowallet_customers')
-      .select('*')
-      .eq('user_id', user.user.id)
-      .single();
-
-    if (error && error.code !== 'PGRST116') throw error;
-    return data;
+    return result.customer;
   }
 
   async getCardTransactions(cardId: string) {
-    const { data, error } = await supabase
-      .from('card_transactions')
-      .select('*')
-      .eq('card_id', cardId)
-      .order('created_at', { ascending: false });
+    const result = await apiGet(`/cards?action=transactions&card_id=${cardId}`);
+    
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to get transactions');
+    }
 
-    if (error) throw error;
-    return data;
+    return result.transactions || [];
   }
 
   async fundCard(cardId: string, amount: number) {
-    const { data: result, error } = await supabase.functions.invoke('fund-strowallet-card', {
-      body: { card_id: cardId, amount },
+    const result = await apiPost('/fund?action=fund_card', {
+      card_id: cardId,
+      amount
     });
-
-    if (error) {
-      throw new Error(error.message || 'Failed to fund card');
-    }
 
     if (!result.success) {
       throw new Error(result.error || 'Failed to fund card');
@@ -132,51 +115,13 @@ export class StrowalletClient {
   }
 
   async updateCustomer(data: UpdateCustomerData) {
-    // Update local database with new URLs
-    const updateData: any = {
-      updated_at: new Date().toISOString()
-    };
+    const result = await apiPut('/customer?action=update', data);
 
-    if (data.first_name) updateData.first_name = data.first_name;
-    if (data.last_name) updateData.last_name = data.last_name;
-    if (data.phone_number) updateData.phone_number = data.phone_number;
-    if (data.id_image) updateData.id_image_url = data.id_image;
-    if (data.user_photo) updateData.user_photo_url = data.user_photo;
-
-    const { data: user } = await supabase.auth.getUser();
-    if (!user.user) throw new Error('Not authenticated');
-
-    const { error: dbError } = await supabase
-      .from('strowallet_customers')
-      .update(updateData)
-      .eq('customer_id', data.customer_id)
-      .eq('user_id', user.user.id);
-
-    if (dbError) throw dbError;
-
-    // Update Strowallet API if basic info changed
-    if (data.first_name || data.last_name || data.phone_number) {
-      const { data: result, error } = await supabase.functions.invoke('update-strowallet-customer', {
-        body: {
-          customer_id: data.customer_id,
-          first_name: data.first_name,
-          last_name: data.last_name,
-          phone_number: data.phone_number
-        },
-      });
-
-      if (error) {
-        throw new Error(error.message || 'Failed to update customer');
-      }
-
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to update customer');
-      }
-
-      return result;
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to update customer');
     }
 
-    return { success: true };
+    return result;
   }
 }
 
