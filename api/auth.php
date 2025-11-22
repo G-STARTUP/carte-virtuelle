@@ -11,14 +11,37 @@ if ($action === 'register' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $input = json_decode(file_get_contents('php://input'), true);
     $email = trim($input['email'] ?? '');
     $password = $input['password'] ?? '';
+    $firstName = trim($input['first_name'] ?? '');
+    $lastName = trim($input['last_name'] ?? '');
+    $phone = trim($input['phone'] ?? '');
+    
     if (!$email || !$password) json(['success'=>false,'error'=>'email and password required'],400);
     $hash = password_hash($password, PASSWORD_BCRYPT);
+    
+    $pdo->beginTransaction();
     try {
-        $stmt = $pdo->prepare('INSERT INTO users (email, password_hash) VALUES (?, ?)');
-        $stmt->execute([$email,$hash]);
-        log_api('auth:register','POST',200,null,'user registered');
-        json(['success'=>true]);
+        // Créer utilisateur
+        $stmt = $pdo->prepare('INSERT INTO users (email, password_hash, first_name, last_name, phone) VALUES (?, ?, ?, ?, ?)');
+        $stmt->execute([$email, $hash, $firstName, $lastName, $phone]);
+        $userId = $pdo->lastInsertId();
+        
+        // Créer 3 wallets (USD, NGN, XOF)
+        $currencies = ['USD', 'NGN', 'XOF'];
+        $walletStmt = $pdo->prepare('INSERT INTO wallets (user_id, currency, balance) VALUES (?, ?, 0.00)');
+        foreach ($currencies as $currency) {
+            $walletStmt->execute([$userId, $currency]);
+        }
+        
+        // Attribuer rôle user par défaut
+        $roleStmt = $pdo->prepare('INSERT INTO user_roles (user_id, role) VALUES (?, ?)');
+        $roleStmt->execute([$userId, 'user']);
+        
+        $pdo->commit();
+        
+        log_api('auth:register','POST',200,$userId,'user registered with wallets');
+        json(['success'=>true, 'user_id'=>$userId]);
     } catch (Throwable $e) {
+        $pdo->rollBack();
         log_api('auth:register','POST',500,null,$e->getMessage());
         json(['success'=>false,'error'=>$e->getMessage()],500);
     }

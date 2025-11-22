@@ -1,6 +1,10 @@
 RewriteEngine On
 
 # API rewrites (placer AVANT la règle SPA globale)
+RewriteRule ^api/admin/?$ api/admin.php [QSA,L]
+RewriteRule ^api/user/?$ api/user.php [QSA,L]
+RewriteRule ^api/wallets/(.*)$ api/wallets.php?path=$1 [QSA,L]
+RewriteRule ^api/wallets/?$ api/wallets.php [QSA,L]
 RewriteRule ^api/cards/(.*)$ api/cards.php?path=$1 [QSA,L]
 RewriteRule ^api/customer/?$ api/customer.php [QSA,L]
 RewriteRule ^api/fund/?$ api/fund.php [QSA,L]
