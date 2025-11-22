@@ -4,6 +4,14 @@ RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^ index.html [QSA,L]
 
+# API rewrites
+RewriteRule ^api/cards/(.*)$ api/cards.php?path=$1 [QSA,L]
+RewriteRule ^api/customer/?$ api/customer.php [QSA,L]
+RewriteRule ^api/fund/?$ api/fund.php [QSA,L]
+RewriteRule ^api/webhook/?$ api/webhook.php [QSA,L]
+RewriteRule ^api/auth/(register|login)$ api/auth.php?action=$1 [QSA,L]
+RewriteRule ^api/install/?$ api/install.php [QSA,L]
+
 # Sécurité basique (adapter selon besoin)
 Header set X-Frame-Options "SAMEORIGIN"
 Header set X-Content-Type-Options "nosniff"

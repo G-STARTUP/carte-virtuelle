@@ -114,6 +114,26 @@ Script `process_webhooks.php` parcourra `webhook_events` où `processed=0`.
 - [ ] Tests API login/register OK
 - [ ] Strowallet endpoints répondent
 - [ ] Logs apparaissent dans `api_logs`
+- [ ] Script install supprimé après usage
+
+## 16. Installation automatisée des tables (optionnelle)
+Endpoint protégé: `/api/install?token=VOTRE_TOKEN`
+Pré-requis: ajouter `INSTALL_SECRET=VOTRE_TOKEN` dans `env.ini` (hors `public_html`).
+Processus:
+1. Déployer `mysql_schema.sql` et `api/install.php`.
+2. Appeler l’URL (GET ou POST) une fois.
+3. Vérifier réponse JSON: toutes les tables `OK`.
+4. Supprimer `api/install.php` du serveur.
+
+Exemple (PowerShell):
+```powershell
+curl https://example.com/api/install?token=VOTRE_TOKEN
+```
+Réponse attendue:
+```json
+{ "success": true, "tables": { "users": "OK", ... }, "recommendation": "Remove install.php now." }
+```
+Sécurité: ne pas laisser le script accessible sans suppression; le token ne doit pas être prévisible.
 
 ## 13. Rétrogradation (rollback)
 Conserver tag Git `vX.Y.Z`. Pour rollback: re-pousser assets d’un tag ou utiliser script GitHub Action déclenché sur release.
@@ -124,3 +144,52 @@ Conserver tag Git `vX.Y.Z`. Pour rollback: re-pousser assets d’un tag ou utili
 - Monitoring externe (UptimeRobot) API / Front.
 
 Fin.
+
+## 15. Déploiement Automatique via Webhook Hostinger
+Hostinger fournit une URL webhook de déploiement: `https://webhooks.hostinger.com/deploy/8e277ebef8a1ac93d532f7c2b8ca5935`.
+
+### Étapes de configuration (GitHub)
+1. Aller sur: `https://github.com/G-STARTUP/carte-virtuelle/settings/hooks/new`.
+2. Payload URL: `https://webhooks.hostinger.com/deploy/8e277ebef8a1ac93d532f7c2b8ca5935`.
+3. Content type: `application/json`.
+4. Secret: générer une valeur aléatoire (ex. PowerShell):
+   ```powershell
+   -join ((48..57)+(65..90)+(97..122) | Get-Random -Count 40 | ForEach-Object {[char]$_})
+   ```
+   (Conserver ce secret pour vérification éventuelle; Hostinger peut l'ignorer selon implémentation.)
+5. SSL verification: activée.
+6. Which events trigger the webhook: sélectionner "Just the push event" (éviter surcharge). Si déploiement sur tags releases, ajouter event `Create` ou `Release`.
+7. Cliquer "Add webhook".
+
+### Interaction avec GitHub Actions
+Deux options:
+- Utiliser uniquement le webhook Hostinger (simple, pas de build local si Hostinger reconstruit automatiquement votre projet).
+- Combiner avec Actions: laisser l'Action faire le build et push artefacts via FTP, désactiver alors le webhook pour éviter double déploiement.
+
+Si vous gardez les deux: limiter le webhook aux pushes sur `main` en déplaçant travail dans une branche de feature (Actions build sur PR, webhook sur merge).
+
+### Validation
+Après ajout du webhook, faire un commit sur `main` (une fois le compte GitHub rétabli) et vérifier dans GitHub Settings > Webhooks > Détails que la livraison ("Recent Deliveries") renvoie `200`.
+
+### Exemple de payload réduit (push event)
+```json
+{
+  "ref": "refs/heads/main",
+  "before": "<commit_sha>",
+  "after": "<commit_sha>",
+  "repository": { "name": "carte-virtuelle", "full_name": "G-STARTUP/carte-virtuelle" },
+  "pusher": { "name": "USERNAME" }
+}
+```
+
+### Bonnes pratiques
+- N'utiliser le webhook qu'après stabilisation de la branche principale.
+- Conserver un tag avant chaque livraison majeure pour rollback.
+- Documenter dans un fichier `WEBHOOK.md` la date de mise en place et le secret choisi.
+
+### Contrôle de signature (optionnel)
+Si Hostinger renvoie un header signature (ex: `X-Hub-Signature-256`), vous pouvez le vérifier côté intermédiaire (si vous intercalez votre propre proxy). Sur mutualisé simple, validation souvent non nécessaire.
+
+### Désactivation / Rotation
+Pour désactiver temporairement: Editer le webhook et décocher "Active". Pour rotation de secret: générer nouveau secret et mettre à jour; commits suivants utiliseront le nouveau.
+

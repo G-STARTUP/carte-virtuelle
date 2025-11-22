@@ -1,14 +1,14 @@
 -- Schéma MySQL initial pour hébergement mutualisé
 -- Adapter types/longueurs selon besoins réels
 
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
   id INT AUTO_INCREMENT PRIMARY KEY,
   email VARCHAR(255) NOT NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE strowallet_customers (
+CREATE TABLE IF NOT EXISTS strowallet_customers (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL,
   customer_id VARCHAR(64) NOT NULL UNIQUE,
@@ -21,7 +21,7 @@ CREATE TABLE strowallet_customers (
   FOREIGN KEY (user_id) REFERENCES users(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE strowallet_cards (
+CREATE TABLE IF NOT EXISTS strowallet_cards (
   id INT AUTO_INCREMENT PRIMARY KEY,
   card_id VARCHAR(64) NOT NULL UNIQUE,
   user_id INT NOT NULL,
@@ -37,7 +37,7 @@ CREATE TABLE strowallet_cards (
   INDEX (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE api_logs (
+CREATE TABLE IF NOT EXISTS api_logs (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   route VARCHAR(128) NOT NULL,
   method VARCHAR(16) NOT NULL,
@@ -50,7 +50,7 @@ CREATE TABLE api_logs (
   INDEX (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE webhook_events (
+CREATE TABLE IF NOT EXISTS webhook_events (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   provider VARCHAR(64) NOT NULL,
   event_type VARCHAR(64) NOT NULL,
@@ -62,7 +62,7 @@ CREATE TABLE webhook_events (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Table simple pour rate limiting par IP (optionnel)
-CREATE TABLE api_rate_limiter (
+CREATE TABLE IF NOT EXISTS api_rate_limiter (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   ip_address VARCHAR(64) NOT NULL,
   route VARCHAR(128) NOT NULL,
